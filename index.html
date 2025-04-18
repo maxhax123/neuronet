@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/maxhax123/neuronet/refs/heads/main/519B1B20-90F9-4D7C-9242-37DE635EA71F.png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title> NeuroNet AI</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+      background-color: #0e0e10;
+      color: #d1d5db;
+      display: flex;
+      flex-direction: column;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 16px;
+      background: #18181b;
+      border-bottom: 1px solid #2a2a2e;
+      overflow-x: auto;
+    }
+
+    .suggestion {
+      background-color: #242428;
+      color: #c5c7d0;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 14px;
+      transition: background 0.2s ease;
+    }
+
+    .suggestion:hover {
+      background-color: #333339;
+    }
+
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      scroll-behavior: smooth;
+    }
+
+    .message {
+      max-width: 85%;
+      width: fit-content;
+      padding: 12px 16px;
+      line-height: 1.5;
+      border-radius: 14px;
+      margin: 10px 0;
+      word-wrap: break-word;
+      animation: messageAppear 0.3s ease;
+    }
+
+    .user {
+      margin-left: auto;
+      background-color: #19c37d;
+      color: white;
+      border-radius: 14px 14px 0 14px;
+    }
+
+    .bot {
+      background-color: #1e1f26;
+      border-radius: 14px 14px 14px 0;
+    }
+
+    #inputForm {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      gap: 10px;
+      border-top: 1px solid #2a2a2e;
+      background: #121212;
+    }
+
+    #query {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: none;
+      background-color: #2a2a2e;
+      color: white;
+      font-size: 16px;
+    }
+
+    #query:focus {
+      outline: 2px solid #19c37d;
+    }
+
+    #send {
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    #send:hover {
+      color: #19c37d;
+    }
+
+    @keyframes messageAppear {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #444;
+      border-radius: 3px;
+    }
+
+    @media screen and (max-width: 600px) {
+      .message {
+        max-width: 100%;
+      }
+
+      #query {
+        font-size: 15px;
+      }
+
+      .suggestion {
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="suggestions"></div>
+  <div id="chat"></div>
+  <form id="inputForm">
+    <input type="text" id="query" placeholder="Hello fellow Hacker…" required />
+    <button type="button" id="send">➤</button>
+  </form>
+
+  <script type="module">
+    import compromise from 'https://cdn.jsdelivr.net/npm/compromise@14/+esm';
+    const nlp = compromise;
+
+    const suggestions = [
+      "SQL injection",
+      "Exploits",
+      "Explain buffer overflow",
+      "What is a rootkit?",
+      "What is Anonymous?",
+      "What is Tor?",
+      "ransomware",
+      "Who is Kevin Mitnick?",
+      "What is social engineering?",
+      "What is a zero-day exploit?"
+    ];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const chat = document.getElementById('chat');
+      const form = document.getElementById('inputForm');
+      const input = document.getElementById('query');
+      const sendBtn = document.getElementById('send');
+      const suggContainer = document.getElementById('suggestions');
+
+      // Add random suggestions on load
+      shuffleArray(suggestions)
+        .slice(0, 3)
+        .forEach(text => {
+          const btn = document.createElement('div');
+          btn.className = 'suggestion';
+          btn.textContent = text;
+          btn.addEventListener('click', () => {
+            input.value = text;
+            handleUserInput();
+          });
+          suggContainer.appendChild(btn);
+        });
+
+      function shuffleArray(arr) {
+        return arr.sort(() => 0.5 - Math.random());
+      }
+
+      function addMessage(text, cls) {
+        const msg = document.createElement('div');
+        msg.className = `message ${cls}`;
+        msg.textContent = text;
+        chat.appendChild(msg);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      function extractMeaningfulTopic(text) {
+        const doc = nlp(text);
+        const pronouns = ['i', 'me', 'you', 'he', 'she', 'it', 'we', 'they', 'my', 'your'];
+        const blacklist = [...pronouns, 'this', 'that', 'those', 'these'];
+
+        let topics = doc.match('#ProperNoun+')
+          .out('array')
+          .filter(t => !blacklist.includes(t.toLowerCase()));
+
+        if (!topics.length) {
+          topics = doc.nouns()
+            .out('array')
+            .filter(t => !blacklist.includes(t.toLowerCase()));
+        }
+
+        if (!topics.length) {
+          const words = doc.terms().out('array');
+          topics = words.filter(t =>
+            !blacklist.includes(t.toLowerCase()) && t.length > 2
+          );
+        }
+
+        return topics[0]?.trim() || null;
+      }
+
+      async function fetchSummary(topic) {
+        try {
+          const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(topic)}`;
+          const res = await fetch(url);
+
+          if (!res.ok) {
+            if (res.status === 404) {
+              throw new Error(`I don't have information about "${topic}". Try something else.`);
+            }
+            throw new Error(`Wikipedia returned error ${res.status}`);
+          }
+
+          const data = await res.json();
+          return data.extract || 'Interesting topic! Want to explore it together?';
+        } catch {
+          throw new Error('Failed to fetch information. Please try again later.');
+        }
+      }
+
+      function decideReplyType(extract) {
+        const l = extract.toLowerCase();
+        if (/hi|hello|greeting/.test(l)) return 'greeting';
+        if (/\?/.test(l)) return 'question';
+        return 'statement';
+      }
+
+      function generateReply(topic, type) {
+        const templates = {
+          greeting: ['Hello! Ready to dive into hacker knowledge?'],
+          question: [
+            `About ${topic}: Here's what I found:`,
+            `Good question. Here’s what Wikipedia says about ${topic}:`
+          ],
+          statement: [
+            `Here's what I know about ${topic}:`,
+            `Let’s look into ${topic}:`
+          ]
+        };
+        const opts = templates[type] || templates.statement;
+        return opts[Math.floor(Math.random() * opts.length)];
+      }
+
+      async function handleUserInput() {
+        const text = input.value.trim();
+        if (!text) return;
+
+        addMessage(text, 'user');
+        addMessage('Hacking the knowledge base...', 'bot');
+        input.value = '';
+
+        // Remove suggestions after first question
+        if (suggContainer.innerHTML) suggContainer.remove();
+
+        try {
+          const topic = extractMeaningfulTopic(text);
+          if (!topic || topic.length < 3) {
+            throw new Error('Didn’t quite catch that. Be more specific!');
+          }
+
+          const summary = await fetchSummary(topic);
+          const type = decideReplyType(summary);
+
+          chat.lastElementChild.remove();
+          const reply = generateReply(topic, type);
+          addMessage(`${reply}\n\n${summary}`, 'bot');
+        } catch (err) {
+          chat.lastElementChild.remove();
+          addMessage(`❌ ${err.message}`, 'bot');
+        }
+      }
+
+      sendBtn.addEventListener('click', handleUserInput);
+      form.addEventListener('submit', e => {
+        e.preventDefault();
+        handleUserInput();
+      });
+    });
+  </script>
+</body>
+</html>
